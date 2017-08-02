@@ -5,18 +5,19 @@ import "github.com/oraclize/ethereum-api/oraclizeAPI.sol";
 
 contract Temptest is usingOraclize {
 
-     string public restemp;
-     uint amount = 1000;
+    uint public _temperature;
+    address _receiver;
+    uint _amount;
+    mapping (address => uint) balances;
+
     event newOraclizeQuery(string description);
     event updatedtemp(string temperature);
  
-
-
-    function __callback(bytes32 myid, string result) {
-        if (msg.sender != oraclize_cbAddress()) throw;
-        restemp = result;
-        updatedtemp(result);
-    }
+    function sendCoin(address receiver, amount) {
+		_amount = amount;
+        _receiver = receiver;
+        updateTemp();
+	}
 
     function updateTemp()  {
         if (oraclize_getPrice("URL") > this.balance) {
@@ -26,13 +27,16 @@ contract Temptest is usingOraclize {
             oraclize_query("URL", "json(http://www.prevision-meteo.ch/services/json/paris).current_condition.tmp"));
         }
     }
-    
-    function sendCoin(address receiver, amount) returns(bool sufficient) {
-		if (temperature < 20) return false;
-		else
-		balances[receiver] += amount;
-		return true;
-	}
+
+    function __callback(bytes32 myid, string result) {
+        if (msg.sender != oraclize_cbAddress()) throw;
+        
+        updatedtemp(result);
+        _temperature = stringToUint(result);
+        
+        if (_temperature < 20) throw;
+		else balances[_receiver] += _amount;
+    }
 	
 	function stringToUint(string s) constant returns (uint result) {
         bytes memory b = bytes(s);
